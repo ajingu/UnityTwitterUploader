@@ -1,15 +1,16 @@
-﻿using UnityEngine;
+﻿using System.IO;
+using UnityEngine;
 
 using TwitterKit.Unity;
 
 public class TwitterManager : Singleton<TwitterManager> {
 
-    private string FileName;
+    private string FilePath;
 
-    public void startLogin(string fileName)
+    public void startLogin(string filePath)
     {
         UnityEngine.Debug.Log("startLogin()");
-        FileName = fileName;
+        FilePath = filePath;
         // To set API key navigate to tools->Twitter Kit
         Twitter.Init();
 
@@ -34,12 +35,23 @@ public class TwitterManager : Singleton<TwitterManager> {
     public void LoginCompleteWithCompose(TwitterSession session)
     {
         //ScreenCapture.CaptureScreenshot("Screenshot.png");
-        UnityEngine.Debug.Log("Screenshot location=" + Application.persistentDataPath + "/" + FileName);
-        string imageUri = "file://" + Application.persistentDataPath + "/" + FileName;
+        UnityEngine.Debug.Log("Screenshot location=" + FilePath);
+        string imageUri = "file://" + FilePath;
         Twitter.Compose(session, imageUri, "Welcome to", new string[] { "#TwitterKitUnity" },
-            (string tweetId) => { UnityEngine.Debug.Log("Tweet Success, tweetId=" + tweetId); },
-            (ApiError error) => { UnityEngine.Debug.Log("Tweet Failed " + error.message); },
-            () => { Debug.Log("Compose cancelled"); }
+                        (string tweetId) => { UnityEngine.Debug.Log("Tweet Success, tweetId=" + tweetId); DeleteFile(); },
+                        (ApiError error) => { UnityEngine.Debug.Log("Tweet Failed " + error.message); DeleteFile(); },
+                        () => { Debug.Log("Compose cancelled"); DeleteFile(); }
          );
+
+
+    }
+
+    void DeleteFile()
+    {
+        if (File.Exists(FilePath))
+        {
+            Debug.Log("File Deleted");
+            File.Delete(FilePath);
+        }
     }
 }
