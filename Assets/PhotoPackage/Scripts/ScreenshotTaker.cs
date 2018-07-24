@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.IO;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UniRx;
@@ -15,6 +13,9 @@ public class ScreenshotTaker : Singleton<ScreenshotTaker>, ITaker
     TwitterManager _twitterManager;
 
     [Inject]
+    FileManager _fileManager;
+
+    [Inject]
     Button _takeButton;
 
     void Start()
@@ -24,29 +25,30 @@ public class ScreenshotTaker : Singleton<ScreenshotTaker>, ITaker
 
     public void Take()
     {
-        var fileName = DateTime.Now.ToString("Cap_yyyy-MM-dd_HH.mm.ss") + ".png";
+        var fileName = System.DateTime.Now.ToString("Cap_yyyy-MM-dd_HH.mm.ss") + ".png";
         var filePath = Application.persistentDataPath + "/" + fileName;
         Debug.Log(filePath);
 
 
         Observable
         .FromCoroutine(_ => Screenshot(fileName, filePath))
-        .Timeout(TimeSpan.FromSeconds(5))
+        .Timeout(System.TimeSpan.FromSeconds(5))
         .Subscribe(
             _ =>
             {
-                _twitterManager.startLogin(filePath);
+                _twitterManager.FilePath = filePath;
+                _twitterManager.startLogin();
                 _uICanvas.enabled = true;
             },
 
             ex =>
             {
-            Debug.Log(ex.Message);
-                _uICanvas.enabled = true;
+                Debug.Log("Login Failed: " + ex.Message);
 #if UNITY_EDITOR
-                filePath = Directory.GetParent(Application.dataPath).FullName + "/" + fileName;
+                filePath = _fileManager.GetProjectDirectoryPath() + "/" + fileName;
 #endif
-                DeleteFile(filePath);
+                _fileManager.DeleteFile(filePath);
+                _uICanvas.enabled = true;
                 
             }
         ).AddTo(this);
@@ -56,15 +58,6 @@ public class ScreenshotTaker : Singleton<ScreenshotTaker>, ITaker
     {
         _uICanvas.enabled = false;
         ScreenCapture.CaptureScreenshot(fileName);
-        yield return new WaitUntil(() => { return File.Exists(filePath); });
-    }
-
-    void DeleteFile(string filePath)
-    {
-        if (File.Exists(filePath))
-        {
-            UnityEngine.Debug.Log("File Deleted");
-            File.Delete(filePath);
-        }
+        yield return new WaitUntil(() => { return _fileManager.isFileExist(filePath); });
     }
 }
