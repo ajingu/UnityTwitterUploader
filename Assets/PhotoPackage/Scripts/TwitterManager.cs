@@ -1,15 +1,17 @@
-﻿using System;
-using System.IO;
-using TwitterKit.Unity;
+﻿using TwitterKit.Unity;
+using Zenject;
 
 public class TwitterManager{
 
-    private string FilePath;
+    string filePath;
+    public string FilePath { get; set; }
 
-    public void startLogin(string filePath)
+    [Inject]
+    FileManager _fileManager;
+
+    public void startLogin()
     {
         UnityEngine.Debug.Log("startLogin()");
-        FilePath = filePath;
         
         Twitter.Init();
 
@@ -38,18 +40,9 @@ public class TwitterManager{
             session,
             imageUri,
             "Welcome to", new string[] { "#TwitterKitUnity" },
-            (string tweetId) => { UnityEngine.Debug.Log("Tweet Success, tweetId=" + tweetId); DeleteFile(); },
-            (ApiError error) => { UnityEngine.Debug.Log("Tweet Failed " + error.message); DeleteFile(); },
-            () => { UnityEngine.Debug.Log("Compose cancelled"); DeleteFile(); }
+            (string tweetId) => { UnityEngine.Debug.Log("Tweet Success, tweetId=" + tweetId); _fileManager.DeleteFile(FilePath); },
+            (ApiError error) => { UnityEngine.Debug.Log("Tweet Failed " + error.message); _fileManager.DeleteFile(FilePath); },
+            () => { UnityEngine.Debug.Log("Compose cancelled"); _fileManager.DeleteFile(FilePath); }
          );
-    }
-
-    void DeleteFile()
-    {
-        if (File.Exists(FilePath))
-        {
-            UnityEngine.Debug.Log("File Deleted");
-            File.Delete(FilePath);
-        }
     }
 }
