@@ -1,16 +1,18 @@
-﻿using UnityEngine;
+﻿using TwitterKit.Unity;
+using Zenject;
 
-using TwitterKit.Unity;
+public class TwitterManager{
 
-public class TwitterManager : Singleton<TwitterManager> {
+    string filePath;
+    public string FilePath { get; set; }
 
-    private string FileName;
+    [Inject]
+    FileManager _fileManager;
 
-    public void startLogin(string fileName)
+    public void startLogin()
     {
         UnityEngine.Debug.Log("startLogin()");
-        FileName = fileName;
-        // To set API key navigate to tools->Twitter Kit
+        
         Twitter.Init();
 
         Twitter.LogIn(LoginCompleteWithCompose, (ApiError error) => {
@@ -20,7 +22,6 @@ public class TwitterManager : Singleton<TwitterManager> {
 
     public void LoginCompleteWithEmail(TwitterSession session)
     {
-        // To get the user's email address you must have "Request email addresses from users" enabled on https://apps.twitter.com/ (Permissions -> Additional Permissions)
         UnityEngine.Debug.Log("LoginCompleteWithEmail()");
         Twitter.RequestEmail(session, RequestEmailComplete, (ApiError error) => { UnityEngine.Debug.Log(error.message); });
     }
@@ -33,13 +34,15 @@ public class TwitterManager : Singleton<TwitterManager> {
 
     public void LoginCompleteWithCompose(TwitterSession session)
     {
-        //ScreenCapture.CaptureScreenshot("Screenshot.png");
-        UnityEngine.Debug.Log("Screenshot location=" + Application.persistentDataPath + "/" + FileName);
-        string imageUri = "file://" + Application.persistentDataPath + "/" + FileName;
-        Twitter.Compose(session, imageUri, "Welcome to", new string[] { "#TwitterKitUnity" },
-            (string tweetId) => { UnityEngine.Debug.Log("Tweet Success, tweetId=" + tweetId); },
-            (ApiError error) => { UnityEngine.Debug.Log("Tweet Failed " + error.message); },
-            () => { Debug.Log("Compose cancelled"); }
+        UnityEngine.Debug.Log("Screenshot location=" + FilePath);
+        string imageUri = "file://" + FilePath;
+        Twitter.Compose(
+            session,
+            imageUri,
+            "Welcome to", new string[] { "#TwitterKitUnity" },
+            (string tweetId) => { UnityEngine.Debug.Log("Tweet Success, tweetId=" + tweetId); _fileManager.DeleteFile(FilePath); },
+            (ApiError error) => { UnityEngine.Debug.Log("Tweet Failed " + error.message); _fileManager.DeleteFile(FilePath); },
+            () => { UnityEngine.Debug.Log("Compose cancelled"); _fileManager.DeleteFile(FilePath); }
          );
     }
 }
